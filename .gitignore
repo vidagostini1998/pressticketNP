@@ -1,0 +1,8 @@
+.docker/data/
+ssl/
+.env
+.wwebjs_auth
+.vscode
+
+estrutura_projeto.txt
+log/
