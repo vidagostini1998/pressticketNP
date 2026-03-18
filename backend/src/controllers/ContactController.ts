@@ -328,6 +328,7 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     cpf
   } = newContact;
 
+  console.log('Criando contato com JID:', jid);
   const contact = await CreateContactService({
     name,
     number,
