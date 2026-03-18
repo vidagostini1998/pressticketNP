@@ -250,7 +250,7 @@ export const getContact = async (
 };
 
 export const store = async (req: Request, res: Response): Promise<Response> => {
-
+  console.log('DEBUG: Entrou na função store do ContactController');
   const newContact: ContactData = req.body;
   // Limpa todos os caracteres não numéricos
   newContact.number = (newContact.number || "").replace(/\D/g, "");
