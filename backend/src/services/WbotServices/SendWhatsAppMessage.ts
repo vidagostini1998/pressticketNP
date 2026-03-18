@@ -210,11 +210,38 @@ const SendWhatsAppMessage = async ({
     } catch (e) {}
     const payload = formatBody(body, ticket);
     let sentMessage: any;
+    let triedFallback = false;
+    let fallbackError = null;
     try {
       sentMessage = await wbot.sendMessage(userId, payload, sendOptions);
     } catch (e1) {
-      await new Promise(r => setTimeout(r, 500));
-      sentMessage = await wbot.sendMessage(userId, payload, sendOptions);
+      // Se for erro de LID, tenta fallback pelo número
+      if (e1 && (e1.message?.includes('No LID for user') || String(e1).includes('No LID for user')) && ticket.contact.number) {
+        console.warn('Tentando fallback: envio pelo número (formato antigo) após erro de LID:', e1);
+        triedFallback = true;
+        const fallbackId = `${ticket.contact.number}@c.us`;
+        try {
+          sentMessage = await wbot.sendMessage(fallbackId, payload, sendOptions);
+        } catch (fallbackErr) {
+          fallbackError = fallbackErr;
+          if (fallbackErr && (fallbackErr.message?.includes('No LID for user') || String(fallbackErr).includes('No LID for user'))) {
+            console.error('Erro ao enviar mensagem: Limitação de LID (fallback):', fallbackErr);
+            throw new AppError('Não é possível enviar mensagens para este contato devido a uma limitação do WhatsApp. Tente novamente mais tarde.', 400);
+          }
+          throw fallbackErr;
+        }
+      } else {
+        await new Promise(r => setTimeout(r, 500));
+        try {
+          sentMessage = await wbot.sendMessage(userId, payload, sendOptions);
+        } catch (e2) {
+          if (e2 && (e2.message?.includes('No LID for user') || String(e2).includes('No LID for user'))) {
+            console.error('Erro ao enviar mensagem: Limitação de LID (tentativa 2):', e2);
+            throw new AppError('Não é possível enviar mensagens para este contato devido a uma limitação do WhatsApp. Tente novamente mais tarde.', 400);
+          }
+          throw e2;
+        }
+      }
     }
 
     await ticket.update({ lastMessage: body });
@@ -242,6 +269,7 @@ const SendWhatsAppMessage = async ({
 
     return sentMessage;
   } catch (err) {
+    if (err instanceof AppError) throw err;
     console.error("Erro ao enviar mensagem:", err);
     throw new AppError("ERR_SENDING_WAPP_MSG");
   }
