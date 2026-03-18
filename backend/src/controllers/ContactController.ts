@@ -265,9 +265,14 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
       .matches(/^\d+$/, "Invalid number format. Only numbers is allowed.")
   });
 
+  console.log('DEBUG: Antes da validação do schema');
+  await schema.validate(newContact);
+  console.log('DEBUG: Depois da validação do schema');
+
   try {
     await schema.validate(newContact);
   } catch (err) {
+    console.log('DEBUG: Erro na validação do schema', err);
     throw new AppError(err.message);
   }
 
