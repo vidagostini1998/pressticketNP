@@ -23,6 +23,7 @@ import { createActivityLog, ActivityActions, EntityTypes } from "../services/Act
 import Whatsapp from "../models/Whatsapp";
 import { getWbot } from "../libs/wbot";
 import GetClientIp from "../helpers/GetClientIp";
+import GetDefaultWhatsApp from "../helpers/GetDefaultWhatsApp";
 
 type IndexQuery = {
   searchParam: string;
