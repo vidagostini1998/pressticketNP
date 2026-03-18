@@ -9,6 +9,7 @@ interface ExtraInfo {
 interface Request {
   name: string;
   number: string;
+  jid?: string;
   address?: string;
   email?: string;
   profilePicUrl?: string;

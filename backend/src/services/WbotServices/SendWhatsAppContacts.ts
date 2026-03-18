@@ -7,6 +7,7 @@ interface ContactData {
   id: string;
   name: string;
   number: string;
+  jid?: string;
   profilePicUrl?: string;
 }
 
