@@ -363,7 +363,8 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
   }
 
   let { name } = newContact;
-  let number = validNumber;
+  // Sempre armazene o número puro, nunca o LID, no campo number
+  let number = newContact.number;
   let { address } = newContact;
   let { email } = newContact;
   let { extraInfo } = newContact;
@@ -382,12 +383,12 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     cpf
   } = newContact;
 
-  console.log('Criando contato com JID:', jid);
+  console.log('Criando contato com JID:', jid, 'e número:', number);
   let contact;
   try {
     contact = await CreateContactService({
       name,
-      number,
+      number, // sempre o número puro
       jid,
       address,
       email,
@@ -406,7 +407,7 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
       state,
       cpf
     });
-    console.log('DEBUG: Contato criado no banco:', contact?.id, contact?.jid);
+    console.log('DEBUG: Contato criado no banco:', contact?.id, contact?.jid, contact?.number);
   } catch (err) {
     console.log('DEBUG: Erro ao criar contato no banco:', err);
     throw err;
