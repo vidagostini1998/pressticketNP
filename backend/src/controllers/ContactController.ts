@@ -55,7 +55,7 @@ export const getBlockStatus = async (
   }
 
   const wbot = getWbot(sessionId);
-  const numberId = await wbot.getNumberId(contact.number);
+  const numberId = await wbot.getNumberId(contact.jid || contact.number);
   if (!numberId) {
     return res.status(404).json({ error: "Número não registrado no WhatsApp" });
   }
@@ -92,11 +92,11 @@ export const blockContact = async (
   }
 
   const wbot = getWbot(sessionId);
-  const numberId = await wbot.getNumberId(contact.number);
+  const numberId = await wbot.getNumberId(contact.jid || contact.number);
   if (!numberId) {
     return res.status(404).json({ error: "Número não registrado no WhatsApp" });
   }
-  
+
   let result;
   try {
     const wContact = await wbot.getContactById(numberId._serialized);
@@ -144,11 +144,11 @@ export const unblockContact = async (
   }
 
   const wbot = getWbot(sessionId);
-  const numberId = await wbot.getNumberId(contact.number);
+  const numberId = await wbot.getNumberId(contact.jid || contact.number);
   if (!numberId) {
     return res.status(404).json({ error: "Número não registrado no WhatsApp" });
   }
-  
+
   let result;
   try {
     const wContact = await wbot.getContactById(numberId._serialized);
@@ -249,8 +249,13 @@ export const getContact = async (
 };
 
 export const store = async (req: Request, res: Response): Promise<Response> => {
+
   const newContact: ContactData = req.body;
-  newContact.number = newContact.number.replace("-", "").replace(" ", "");
+  // Limpa todos os caracteres não numéricos
+  newContact.number = (newContact.number || "").replace(/\D/g, "");
+  if (!newContact.number) {
+    throw new AppError("O número do contato é obrigatório e deve conter apenas dígitos.");
+  }
 
   const schema = Yup.object().shape({
     name: Yup.string().required(),
@@ -268,22 +273,41 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
   const isApiRequest = req.originalUrl.includes('/v1/');
   let validNumber: string = newContact.number;
   let profilePicUrl: string | undefined = undefined;
+  let jid: string | undefined = undefined;
 
   if (!isApiRequest) {
     try {
       await CheckIsValidContact(newContact.number);
-      validNumber = await CheckContactNumber(newContact.number);
+      const numberId = await (async () => {
+        const defaultWhatsapp = await (await import("../../helpers/GetDefaultWhatsApp")).default();
+        const wbot = (await import("../../libs/wbot")).getWbot(defaultWhatsapp.id);
+        return await wbot.getNumberId(`${newContact.number}@c.us`);
+      })();
+      if (!numberId) {
+        throw new AppError("O número informado não é reconhecido pelo WhatsApp. Não é possível adicionar este contato.");
+      }
+      validNumber = numberId.user;
+      jid = numberId._serialized;
       profilePicUrl = await GetProfilePicUrl(validNumber);
     } catch (err) {
       throw new AppError(err.message);
     }
   } else {
     try {
-      const checkedNumber = await CheckContactNumber(newContact.number);
-      validNumber = checkedNumber;
+      const numberId = await (async () => {
+        const defaultWhatsapp = await (await import("../../helpers/GetDefaultWhatsApp")).default();
+        const wbot = (await import("../../libs/wbot")).getWbot(defaultWhatsapp.id);
+        return await wbot.getNumberId(`${newContact.number}@c.us`);
+      })();
+      if (!numberId) {
+        throw new AppError("O número informado não é reconhecido pelo WhatsApp. Não é possível adicionar este contato.");
+      }
+      validNumber = numberId.user;
+      jid = numberId._serialized;
       profilePicUrl = await GetProfilePicUrl(validNumber);
     } catch (error) {
       console.log("Erro ao validar contato da API, continuando com o número original", error);
+      throw new AppError("O número informado não é reconhecido pelo WhatsApp. Não é possível adicionar este contato.");
     }
   }
 
@@ -310,6 +334,7 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
   const contact = await CreateContactService({
     name,
     number,
+    jid,
     address,
     email,
     extraInfo,
@@ -329,7 +354,7 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
   });
 
   const logUserId = req.user?.id || 1;
-  
+
   await createActivityLog({
     userId: typeof logUserId === 'string' ? parseInt(logUserId) : logUserId,
     action: ActivityActions.CREATE,
@@ -386,7 +411,7 @@ export const update = async (
 
   const contact = await UpdateContactService({ contactData, contactId });
   const logUserId = req.user?.id || 1;
-  
+
   await createActivityLog({
     userId: typeof logUserId === 'string' ? parseInt(logUserId) : logUserId,
     action: ActivityActions.UPDATE,
@@ -412,10 +437,10 @@ export const remove = async (
   const { contactId } = req.params;
 
   const contactToDelete = await ShowContactService(contactId);
-  
+
   await DeleteContactService(contactId);
   const logUserId = req.user?.id || 1;
-  
+
   await createActivityLog({
     userId: typeof logUserId === 'string' ? parseInt(logUserId) : logUserId,
     action: ActivityActions.DELETE,
@@ -445,7 +470,7 @@ export const removeAll = async (
   await DeleteAllContactService();
   const logUserId = req.user?.id || 1;
   const clientIp = GetClientIp(req);
-  
+
   await createActivityLog({
     userId: typeof logUserId === 'string' ? parseInt(logUserId) : logUserId,
     action: ActivityActions.DELETE,
@@ -486,9 +511,9 @@ export const updateTags = async (
     tags,
     contactId: +contactId
   });
-  
+
   const logUserId = req.user?.id || 1;
-  
+
   if (contact) {
     await createActivityLog({
       userId: typeof logUserId === 'string' ? parseInt(logUserId) : logUserId,

@@ -58,6 +58,7 @@ const CreateContactService = async ({
     {
       name,
       number,
+      jid,
       address,
       email,
       extraInfo,

@@ -19,6 +19,10 @@ import Ticket from "./Ticket";
 
 @Table
 class Contact extends Model<Contact> {
+    @AllowNull(true)
+    @Unique
+    @Column
+    jid: string;
   @PrimaryKey
   @AutoIncrement
   @Column
@@ -27,7 +31,7 @@ class Contact extends Model<Contact> {
   @Column
   name: string;
 
-  @AllowNull(true)
+  @AllowNull(false)
   @Unique
   @Column
   number: string;
