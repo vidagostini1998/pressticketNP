@@ -340,29 +340,34 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
   } = newContact;
 
   console.log('Criando contato com JID:', jid);
-  const contact = await CreateContactService({
-    name,
-    number,
-    jid,
-    address,
-    email,
-    extraInfo,
-    profilePicUrl,
-    birthdate,
-    gender,
-    status,
-    lastContactAt,
-    country,
-    zip,
-    addressNumber,
-    addressComplement,
-    neighborhood,
-    city,
-    state,
-    cpf
-  });
-  console.log('DEBUG: Contato criado no banco:', contact?.id, contact?.jid);
-
+  let contact;
+  try {
+    contact = await CreateContactService({
+      name,
+      number,
+      jid,
+      address,
+      email,
+      extraInfo,
+      profilePicUrl,
+      birthdate,
+      gender,
+      status,
+      lastContactAt,
+      country,
+      zip,
+      addressNumber,
+      addressComplement,
+      neighborhood,
+      city,
+      state,
+      cpf
+    });
+    console.log('DEBUG: Contato criado no banco:', contact?.id, contact?.jid);
+  } catch (err) {
+    console.log('DEBUG: Erro ao criar contato no banco:', err);
+    throw err;
+  }
   const logUserId = req.user?.id || 1;
 
   await createActivityLog({
