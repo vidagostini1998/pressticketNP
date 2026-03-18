@@ -429,6 +429,13 @@ export const update = async (
 
   await createActivityLog({
     userId: typeof logUserId === 'string' ? parseInt(logUserId) : logUserId,
+      // Adicionar log global para capturar qualquer erro não tratado
+      process.on('uncaughtException', (err) => {
+        console.error('UNCAUGHT EXCEPTION:', err);
+      });
+      process.on('unhandledRejection', (reason, promise) => {
+        console.error('UNHANDLED REJECTION at:', promise, 'reason:', reason);
+      });
     action: ActivityActions.UPDATE,
     description: `Contato ${contact.name} (${contact.number}) atualizado`,
     entityType: EntityTypes.CONTACT,
