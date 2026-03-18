@@ -301,9 +301,17 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
       }
       validNumber = numberId.user;
       jid = numberId._serialized;
-      profilePicUrl = await GetProfilePicUrl(validNumber);
+      // Protege GetProfilePicUrl com try/catch
+      try {
+        console.log('DEBUG: Chamando GetProfilePicUrl para:', validNumber);
+        profilePicUrl = await GetProfilePicUrl(validNumber);
+        console.log('DEBUG: Retorno GetProfilePicUrl:', profilePicUrl);
+      } catch (picErr) {
+        console.log('ERRO ao buscar foto do perfil:', picErr);
+      }
       console.log('DEBUG: jid obtido (não-API):', jid);
     } catch (err) {
+      console.log('ERRO no bloco de obtenção do LID:', err);
       throw new AppError(err.message);
     }
   } else {
@@ -318,9 +326,17 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
       }
       validNumber = numberId.user;
       jid = numberId._serialized;
-      profilePicUrl = await GetProfilePicUrl(validNumber);
+      // Protege GetProfilePicUrl com try/catch
+      try {
+        console.log('DEBUG: Chamando GetProfilePicUrl para:', validNumber);
+        profilePicUrl = await GetProfilePicUrl(validNumber);
+        console.log('DEBUG: Retorno GetProfilePicUrl:', profilePicUrl);
+      } catch (picErr) {
+        console.log('ERRO ao buscar foto do perfil:', picErr);
+      }
       console.log('DEBUG: jid obtido (API):', jid);
     } catch (error) {
+      console.log('ERRO no bloco de obtenção do LID:', error);
       console.log("Erro ao validar contato da API, continuando com o número original", error);
       throw new AppError("O número informado não é reconhecido pelo WhatsApp. Não é possível adicionar este contato.");
     }
