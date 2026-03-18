@@ -361,6 +361,7 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     state,
     cpf
   });
+  console.log('DEBUG: Contato criado no banco:', contact?.id, contact?.jid);
 
   const logUserId = req.user?.id || 1;
 
