@@ -27,7 +27,7 @@ import UserModal from "../components/UserModal";
 import { AuthContext } from "../context/Auth/AuthContext";
 import toastError from "../errors/toastError";
 import api from "../services/api";
-import openSocket from "../services/socket-io";
+import { useSocket } from "../context/SocketContext";
 import MainListItems from "./MainListItems";
 
 const drawerWidth = 350;
@@ -133,16 +133,15 @@ const LoggedInLayout = ({ children, toggleTheme, onThemeConfigUpdate }) => {
     url: "https://npdev.com.br",
   });
 
+  const { socket } = useSocket();
   useEffect(() => {
     const fetchCompanyData = async () => {
       try {
         const { data } = await api.get("/personalizations");
-
         if (data && data.length > 0) {
           const lightConfig = data.find(
             (themeConfig) => themeConfig.theme === "light",
           );
-
           if (lightConfig) {
             setCompanyData((prevData) => ({
               ...prevData,
@@ -155,20 +154,20 @@ const LoggedInLayout = ({ children, toggleTheme, onThemeConfigUpdate }) => {
         toastError(err);
       }
     };
-
-    const socket = openSocket();
-    socket.on("personalization", (data) => {
-      if (data.action === "update") {
-        fetchCompanyData();
-      }
-    });
-
+    if (socket) {
+      socket.on("personalization", (data) => {
+        if (data.action === "update") {
+          fetchCompanyData();
+        }
+      });
+    }
     fetchCompanyData();
-
     return () => {
-      socket.disconnect();
+      if (socket) {
+        socket.off("personalization");
+      }
     };
-  }, []);
+  }, [socket]);
 
   useEffect(() => {
     const fetchLogo = async () => {
