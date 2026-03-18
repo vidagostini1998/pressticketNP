@@ -307,7 +307,7 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
         profilePicUrl = await GetProfilePicUrl(validNumber);
         console.log('DEBUG: Retorno GetProfilePicUrl:', profilePicUrl);
       } catch (picErr) {
-        profilePicUrl = null;
+        profilePicUrl = undefined;
         console.warn('Não foi possível obter a foto do perfil do contato. Prosseguindo sem foto. Erro:', picErr?.message || picErr);
       }
       console.log('DEBUG: jid obtido (não-API):', jid);
@@ -333,7 +333,7 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
         profilePicUrl = await GetProfilePicUrl(validNumber);
         console.log('DEBUG: Retorno GetProfilePicUrl:', profilePicUrl);
       } catch (picErr) {
-        profilePicUrl = null;
+        profilePicUrl = undefined;
         console.warn('Não foi possível obter a foto do perfil do contato. Prosseguindo sem foto. Erro:', picErr?.message || picErr);
       }
       console.log('DEBUG: jid obtido (API):', jid);
