@@ -286,7 +286,9 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
       await CheckIsValidContact(newContact.number);
       const defaultWhatsapp = await GetDefaultWhatsApp();
       const wbot = getWbot(defaultWhatsapp.id);
+      console.log('DEBUG: Chamando wbot.getNumberId para:', `${newContact.number}@c.us`);
       const numberId = await wbot.getNumberId(`${newContact.number}@c.us`);
+      console.log('DEBUG: Retorno de wbot.getNumberId:', numberId);
       if (!numberId) {
         throw new AppError("O número informado não é reconhecido pelo WhatsApp. Não é possível adicionar este contato.");
       }
@@ -301,7 +303,9 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     try {
       const defaultWhatsapp = await GetDefaultWhatsApp();
       const wbot = getWbot(defaultWhatsapp.id);
+      console.log('DEBUG: Chamando wbot.getNumberId para:', `${newContact.number}@c.us`);
       const numberId = await wbot.getNumberId(`${newContact.number}@c.us`);
+      console.log('DEBUG: Retorno de wbot.getNumberId:', numberId);
       if (!numberId) {
         throw new AppError("O número informado não é reconhecido pelo WhatsApp. Não é possível adicionar este contato.");
       }
