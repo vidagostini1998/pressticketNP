@@ -10,9 +10,9 @@ import formatBody from "../../helpers/Mustache";
 
 async function findMessageDirectlyFromWA(wbot: any, ticket: Ticket, quotedMsgId: string): Promise<any | null> {
   try {
-    const groupId = ticket.contact.number.includes("@")
+    const groupId = ticket.contact.jid || (ticket.contact.number.includes("@")
       ? ticket.contact.number
-      : `${ticket.contact.number}@g.us`;
+      : `${ticket.contact.number}@g.us`);
     const chat = await wbot.getChatById(groupId);
 
     const messages = await chat.fetchMessages({ limit: 500 });
@@ -44,16 +44,16 @@ const SendWhatsAppMessage = async ({
   mentions
 }: Request): Promise<WbotMessage> => {
   // Validação extra para garantir que o número está presente e correto
-  if (!ticket?.contact?.number || typeof ticket.contact.number !== "string" || !ticket.contact.number.match(/^\d+$/)) {
+  if (!ticket?.contact?.jid && (!ticket?.contact?.number || typeof ticket.contact.number !== "string" || !ticket.contact.number.match(/^\d+$/))) {
     throw new AppError("No LID for user: número do contato ausente ou inválido");
   }
   const wbot = await GetTicketWbot(ticket);
-  const groupId = ticket.contact.number.includes("@")
+  const groupId = ticket.contact.jid || (ticket.contact.number.includes("@")
     ? ticket.contact.number
-    : `${ticket.contact.number}@g.us`;
-  const userId = ticket.contact.number.includes("@")
+    : `${ticket.contact.number}@g.us`);
+  const userId = ticket.contact.jid || (ticket.contact.number.includes("@")
     ? ticket.contact.number
-    : `${ticket.contact.number}@c.us`;
+    : `${ticket.contact.number}@c.us`);
 
   if (quotedMsg && ticket.isGroup) {
     const originalMessage = await findMessageDirectlyFromWA(wbot, ticket, quotedMsg.id);
