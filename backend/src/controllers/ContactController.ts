@@ -67,6 +67,10 @@ export const getBlockStatus = async (
   try {
     numberId = await wbot.getNumberId(contact.jid || contact.number);
   } catch (err) {
+    if (contact.jid && contact.jid.endsWith('@lid')) {
+      console.error('Erro ao chamar wbot.getNumberId para LID:', err);
+      return res.status(400).json({ error: 'Não é possível consultar o status deste contato porque o WhatsApp não permite essa operação para contas LID.' });
+    }
     console.error('Erro ao chamar wbot.getNumberId:', err);
     return res.status(500).json({ error: 'Erro ao consultar status do contato no WhatsApp. Tente novamente mais tarde.' });
   }
@@ -110,8 +114,19 @@ export const blockContact = async (
   try {
     numberId = await wbot.getNumberId(contact.jid || contact.number);
   } catch (err) {
-    console.error('Erro ao chamar wbot.getNumberId:', err);
-    return res.status(500).json({ error: 'Erro ao bloquear contato no WhatsApp. Tente novamente mais tarde.' });
+    if (contact.jid && contact.jid.endsWith('@lid') && contact.number) {
+      // Fallback: tentar pelo número antigo
+      try {
+        console.warn('Tentando fallback: bloquear pelo número antigo após erro de LID:', err);
+        numberId = await wbot.getNumberId(`${contact.number}@c.us`);
+      } catch (fallbackErr) {
+        console.error('Erro ao chamar wbot.getNumberId para fallback:', fallbackErr);
+        return res.status(400).json({ error: 'Não é possível bloquear este contato porque o WhatsApp não permite essa operação para contas LID.' });
+      }
+    } else {
+      console.error('Erro ao chamar wbot.getNumberId:', err);
+      return res.status(500).json({ error: 'Erro ao bloquear contato no WhatsApp. Tente novamente mais tarde.' });
+    }
   }
   if (!numberId) {
     return res.status(404).json({ error: "Número não registrado no WhatsApp" });
@@ -122,6 +137,21 @@ export const blockContact = async (
     const wContact = await wbot.getContactById(numberId._serialized);
     result = await (wContact as any).block();
   } catch (err) {
+    // Fallback: tentar bloquear pelo número antigo se ainda não tentou
+    if (contact.jid && contact.jid.endsWith('@lid') && contact.number && (!numberId || numberId._serialized !== `${contact.number}@c.us`)) {
+      try {
+        console.warn('Tentando fallback (bloqueio): pelo número antigo após erro ao bloquear via LID:', err);
+        const fallbackId = await wbot.getNumberId(`${contact.number}@c.us`);
+        if (fallbackId) {
+          const wContactFallback = await wbot.getContactById(fallbackId._serialized);
+          result = await (wContactFallback as any).block();
+          return res.status(200).json({ success: Boolean(result), fallback: true });
+        }
+      } catch (fallbackErr) {
+        console.error('Erro ao bloquear contato via fallback:', fallbackErr);
+        return res.status(400).json({ error: 'Não é possível bloquear este contato porque o WhatsApp não permite essa operação para contas LID.' });
+      }
+    }
     console.warn(`[FALLBACK] Erro ao obter/bloquear contato: ${err.message || err}`);
     return res.status(500).json({ error: "Erro ao bloquear contato no WhatsApp" });
   }
@@ -168,8 +198,19 @@ export const unblockContact = async (
   try {
     numberId = await wbot.getNumberId(contact.jid || contact.number);
   } catch (err) {
-    console.error('Erro ao chamar wbot.getNumberId:', err);
-    return res.status(500).json({ error: 'Erro ao desbloquear contato no WhatsApp. Tente novamente mais tarde.' });
+    if (contact.jid && contact.jid.endsWith('@lid') && contact.number) {
+      // Fallback: tentar pelo número antigo
+      try {
+        console.warn('Tentando fallback: desbloquear pelo número antigo após erro de LID:', err);
+        numberId = await wbot.getNumberId(`${contact.number}@c.us`);
+      } catch (fallbackErr) {
+        console.error('Erro ao chamar wbot.getNumberId para fallback:', fallbackErr);
+        return res.status(400).json({ error: 'Não é possível desbloquear este contato porque o WhatsApp não permite essa operação para contas LID.' });
+      }
+    } else {
+      console.error('Erro ao chamar wbot.getNumberId:', err);
+      return res.status(500).json({ error: 'Erro ao desbloquear contato no WhatsApp. Tente novamente mais tarde.' });
+    }
   }
   if (!numberId) {
     return res.status(404).json({ error: "Número não registrado no WhatsApp" });
@@ -180,6 +221,21 @@ export const unblockContact = async (
     const wContact = await wbot.getContactById(numberId._serialized);
     result = await (wContact as any).unblock();
   } catch (err) {
+    // Fallback: tentar desbloquear pelo número antigo se ainda não tentou
+    if (contact.jid && contact.jid.endsWith('@lid') && contact.number && (!numberId || numberId._serialized !== `${contact.number}@c.us`)) {
+      try {
+        console.warn('Tentando fallback (desbloqueio): pelo número antigo após erro ao desbloquear via LID:', err);
+        const fallbackId = await wbot.getNumberId(`${contact.number}@c.us`);
+        if (fallbackId) {
+          const wContactFallback = await wbot.getContactById(fallbackId._serialized);
+          result = await (wContactFallback as any).unblock();
+          return res.status(200).json({ success: Boolean(result), fallback: true });
+        }
+      } catch (fallbackErr) {
+        console.error('Erro ao desbloquear contato via fallback:', fallbackErr);
+        return res.status(400).json({ error: 'Não é possível desbloquear este contato porque o WhatsApp não permite essa operação para contas LID.' });
+      }
+    }
     console.warn(`[FALLBACK] Erro ao obter/desbloquear contato: ${err.message || err}`);
     return res.status(500).json({ error: "Erro ao desbloquear contato no WhatsApp" });
   }

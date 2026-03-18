@@ -38,7 +38,7 @@ const GetCommonGroupsService = async ({
   }
 
   let sessionId: number | null = whatsappId || null;
-  
+
   if (!sessionId) {
     const connected = await Whatsapp.findOne({
       where: { status: "CONNECTED", type: "wwebjs" }
@@ -51,8 +51,22 @@ const GetCommonGroupsService = async ({
   }
 
   const wbot = await getWbot(sessionId);
-  
-  const numberId = await wbot.getNumberId(contact.number);
+
+  let numberId;
+  try {
+    numberId = await wbot.getNumberId(contact.jid || contact.number);
+  } catch (err) {
+    if (contact.jid && contact.jid.endsWith('@lid') && contact.number) {
+      // Fallback: tentar pelo número antigo
+      try {
+        numberId = await wbot.getNumberId(`${contact.number}@c.us`);
+      } catch (fallbackErr) {
+        throw new AppError("Não é possível obter informações deste contato porque o WhatsApp não permite essa operação para contas LID.", 400);
+      }
+    } else {
+      throw new AppError("Erro ao consultar informações do contato no WhatsApp.", 500);
+    }
+  }
   if (!numberId) {
     throw new AppError("ERR_NUMBER_NOT_REGISTERED", 404);
   }
@@ -65,15 +79,15 @@ const GetCommonGroupsService = async ({
     console.warn(`[FALLBACK] Erro ao obter contato/grupos comuns do WhatsApp: ${error.message || error}`);
     commonGroups = [];
   }
-  
+
   const groupsInfo: GroupInfo[] = [];
-  
+
   for (const group of commonGroups) {
     const groupId = group._serialized || `${group.user}@g.us`;
 
     try {
       const groupChat = await wbot.getChatById(groupId);
-      
+
       let profilePicUrl: string | undefined;
       try {
         profilePicUrl = await wbot.getProfilePicUrl(groupId);
