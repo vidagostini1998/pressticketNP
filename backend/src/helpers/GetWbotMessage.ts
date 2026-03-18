@@ -9,37 +9,34 @@ export const GetWbotMessage = async (
 ): Promise<WbotMessage> => {
   const wbot = await GetTicketWbot(ticket);
 
-  if (!ticket.contact.number) {
-    console.error("Número do contato não encontrado no ticket:", ticket.id);
-    throw new AppError("ERR_INVALID_CONTACT_NUMBER");
-  }
-
-  let chatId = ticket.contact.number;
-  if (!chatId.includes("@")) {
-    chatId = `${chatId}@${ticket.isGroup ? "g" : "c"}.us`;
-  }
+    const jid = ticket.contact.jid || (ticket.contact.number ? `${ticket.contact.number}@${ticket.isGroup ? "g" : "c"}.us` : null);
+    if (!jid) {
+      console.error("JID ou número do contato não encontrado no ticket:", ticket.id);
+      throw new AppError("ERR_INVALID_CONTACT_NUMBER");
+    }
+    let chatId = jid;
 
   let wbotChat: Chat;
   try {
     wbotChat = await wbot.getChatById(chatId);
-    
+
     if (!wbotChat) {
       console.error(`[GetWbotMessage] Chat não encontrado: ${chatId}`);
       throw new Error("Chat não encontrado");
     }
   } catch (getChatError: any) {
     console.error(`[GetWbotMessage] Erro ao buscar chat ${chatId}:`, getChatError.message);
-    
+
     try {
       const directMessage = await wbot.getMessageById(messageId);
-      
+
       if (directMessage) {
         return directMessage;
       }
     } catch (directError: any) {
       console.error(`[GetWbotMessage] Falha ao buscar mensagem diretamente:`, directError.message);
     }
-    
+
     throw new AppError("ERR_CHAT_NOT_FOUND");
   }
 

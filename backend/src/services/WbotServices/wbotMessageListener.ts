@@ -214,7 +214,7 @@ const verifyMediaMessage = async (
     userId: ticket.userId,
     fileSize: fileSize
   };
-  
+
   const existingMessage = await Message.findByPk(messageData.id);
   if (existingMessage) {
     const messageAge = Date.now() - new Date(existingMessage.createdAt).getTime();
@@ -222,10 +222,10 @@ const verifyMediaMessage = async (
       return existingMessage;
     }
   }
-  
+
   try {
     const newMessage = await CreateMessageService({ messageData });
-    
+
     const FormatLastMessage = require("../../helpers/FormatLastMessage").default;
     const formattedLastMessage = FormatLastMessage({
       body: messageData.body,
@@ -235,10 +235,10 @@ const verifyMediaMessage = async (
       fromMe: msg.fromMe,
       filename: media.filename
     });
-    
+
     await ticket.update({ lastMessage: formattedLastMessage });
     await ticket.reload();
-    
+
     return newMessage;
   } catch (error) {
     console.error("Erro ao salvar mensagem com mídia no banco de dados:", error);
@@ -246,7 +246,7 @@ const verifyMediaMessage = async (
       setTimeout(async () => {
         try {
           const newMessage = await CreateMessageService({ messageData });
-          
+
           const FormatLastMessage = require("../../helpers/FormatLastMessage").default;
           const formattedLastMessage = FormatLastMessage({
             body: messageData.body,
@@ -256,10 +256,10 @@ const verifyMediaMessage = async (
             fromMe: msg.fromMe,
             filename: media.filename
           });
-          
+
           await ticket.update({ lastMessage: formattedLastMessage });
           await ticket.reload();
-          
+
           resolve(newMessage);
         } catch (retryError) {
           console.error("Erro ao salvar mensagem com mídia na segunda tentativa:", retryError);
@@ -280,7 +280,7 @@ const getGeocode = async (
 
   const safeLatitude = encodeURIComponent(String(latitude).trim());
   const safeLongitude = encodeURIComponent(String(longitude).trim());
-  
+
   const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${safeLatitude},${safeLongitude}&key=${encodeURIComponent(apiKey?.value || '')}`;
 
   return new Promise((resolve, reject) => {
@@ -305,7 +305,7 @@ const getGeocode = async (
 const prepareLocation = async (msg: WbotMessage): Promise<WbotMessage> => {
   const safeLatitude = encodeURIComponent(String(msg.location.latitude).trim());
   const safeLongitude = encodeURIComponent(String(msg.location.longitude).trim());
-  
+
   const gmapsUrl = `https://maps.google.com/maps?q=${safeLatitude}%2C${safeLongitude}&z=17`;
 
   try {
@@ -326,7 +326,7 @@ const prepareLocation = async (msg: WbotMessage): Promise<WbotMessage> => {
     }`;
   } catch (error) {
     console.error("Erro ao preparar a localização:", error);
-    
+
     if (typeof msg.body !== 'string') {
       msg.body = '';
     }
@@ -348,32 +348,32 @@ const verifyMessage = async (
   if (msg.type === "location") msg = await prepareLocation(msg);
 
   const quotedMsg = await verifyQuotedMessage(msg);
-  
+
   let pollBody = msg.body;
   if (msg.type === "poll_creation" && (msg as any).pollName) {
     const poll = msg as any;
     const pollName = poll.pollName || "Enquete";
     const pollOptions = poll.pollOptions || [];
-    
+
     logger.info(`[POLL_RECEIVED] Estrutura completa da enquete: ${JSON.stringify({
       pollName,
       pollOptions,
       totalOptions: pollOptions.length
     })}`);
-    
+
     pollBody = `📊 Enquete: ${pollName}\n\n`;
     pollBody += `Selecione uma ou mais opções:\n\n`;
-    
+
     pollOptions.forEach((option: any, index: number) => {
       const optionName = option?.name || option?.localName || option;
       if (optionName && typeof optionName === 'string' && optionName.trim() !== '') {
         pollBody += `${index + 1}. ${optionName}\n`;
       }
     });
-    
+
     logger.info(`[POLL_RECEIVED] Enquete recebida: ${pollName} com ${pollOptions.length} opções`);
   }
-  
+
   const messageData = {
     id: msg.id.id,
     ticketId: ticket.id,
@@ -522,7 +522,7 @@ const verifyMessage = async (
 
   try {
     await CreateMessageService({ messageData });
-    
+
     const FormatLastMessage = require("../../helpers/FormatLastMessage").default;
     const formattedLastMessage = FormatLastMessage({
       body: messageData.body,
@@ -532,7 +532,7 @@ const verifyMessage = async (
       fromMe: msg.fromMe,
       filename: undefined
     });
-    
+
     await ticket.update({ lastMessage: formattedLastMessage });
     await ticket.reload();
   } catch (error) {
@@ -540,7 +540,7 @@ const verifyMessage = async (
     setTimeout(async () => {
       try {
         await CreateMessageService({ messageData });
-        
+
         const FormatLastMessage = require("../../helpers/FormatLastMessage").default;
         const formattedLastMessage = FormatLastMessage({
           body: messageData.body,
@@ -550,7 +550,7 @@ const verifyMessage = async (
           fromMe: msg.fromMe,
           filename: undefined
         });
-        
+
         await ticket.update({ lastMessage: formattedLastMessage });
         await ticket.reload();
       } catch (retryError) {
@@ -571,7 +571,7 @@ const resetGreetingCounts = () => {
 
 const startGreetingCountResetTimer = () => {
   clearTimeout(resetGreetingCountTimeout);
-  resetGreetingCountTimeout = setTimeout(resetGreetingCounts, 1800000); 
+  resetGreetingCountTimeout = setTimeout(resetGreetingCounts, 1800000);
 };
 
 const verifyQueue = async (
@@ -600,7 +600,7 @@ const verifyQueue = async (
     const body = formatBody(`\u200e${queues[0].greetingMessage}`, ticket);
 
     const sentMessage = await wbot.sendMessage(
-      `${contact.number}@c.us`,
+      (contact.jid || `${contact.number}@c.us`),
       body
     );
 
@@ -618,17 +618,17 @@ const verifyQueue = async (
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes();
     const currentTimeInMinutes = currentHour * 60 + currentMinute;
-    
+
     const startWorkParts = choosenQueue.startWork.split(':');
     const startWorkHour = parseInt(startWorkParts[0], 10);
     const startWorkMinute = parseInt(startWorkParts[1], 10);
     const startWorkInMinutes = startWorkHour * 60 + startWorkMinute;
-    
+
     const endWorkParts = choosenQueue.endWork.split(':');
     const endWorkHour = parseInt(endWorkParts[0], 10);
     const endWorkMinute = parseInt(endWorkParts[1], 10);
     const endWorkInMinutes = endWorkHour * 60 + endWorkMinute;
-    
+
     let isBreakTime = false;
     if (choosenQueue.startBreak && choosenQueue.endBreak) {
       try {
@@ -636,12 +636,12 @@ const verifyQueue = async (
         const startBreakHour = parseInt(startBreakParts[0], 10);
         const startBreakMinute = parseInt(startBreakParts[1], 10);
         const startBreakInMinutes = startBreakHour * 60 + startBreakMinute;
-        
+
         const endBreakParts = choosenQueue.endBreak.split(':');
         const endBreakHour = parseInt(endBreakParts[0], 10);
         const endBreakMinute = parseInt(endBreakParts[1], 10);
         const endBreakInMinutes = endBreakHour * 60 + endBreakMinute;
-        
+
         if (currentTimeInMinutes >= startBreakInMinutes && currentTimeInMinutes <= endBreakInMinutes) {
           isBreakTime = true;
         }
@@ -651,9 +651,9 @@ const verifyQueue = async (
       }
     }
     const isOutsideWorkHours = currentTimeInMinutes < startWorkInMinutes || currentTimeInMinutes > endWorkInMinutes;
-    
+
     if (isBreakTime || isOutsideWorkHours) {
-    
+
       await UpdateTicketService({
         ticketData: { queueId: choosenQueue.id },
         ticketId: ticket.id
@@ -661,16 +661,16 @@ const verifyQueue = async (
 
       const chat = await msg.getChat();
       await chat.sendStateTyping();
-      
-      const messageToSend = isBreakTime && choosenQueue.breakMessage 
-        ? choosenQueue.breakMessage 
+
+      const messageToSend = isBreakTime && choosenQueue.breakMessage
+        ? choosenQueue.breakMessage
         : choosenQueue.absenceMessage;
-      
+
       const body = formatBody(`\u200e${messageToSend}\n\n*[ # ]* - Voltar ao Menu Principal`, ticket);
       const debouncedSentMessage = debounce(
         async () => {
           const sentMessage = await wbot.sendMessage(
-            `${contact.number}@c.us`,
+            (contact.jid || `${contact.number}@c.us`),
             body
           );
           verifyMessage(sentMessage, ticket, contact);
@@ -694,7 +694,7 @@ const verifyQueue = async (
       const debouncedSentMessage = debounce(
         async () => {
           const sentMessage = await wbot.sendMessage(
-            `${contact.number}@c.us`,
+            (contact.jid || `${contact.number}@c.us`),
             body
           );
           verifyMessage(sentMessage, ticket, contact);
@@ -768,7 +768,7 @@ const verifyQueue = async (
       const debouncedSentMessage = debounce(
         async () => {
           const sentMessage = await wbot.sendMessage(
-            `${contact.number}@c.us`,
+            (contact.jid || `${contact.number}@c.us`),
             body
           );
           verifyMessage(sentMessage, ticket, contact);
@@ -783,7 +783,7 @@ const verifyQueue = async (
         const debouncedSecondMessage = debounce(
           async () => {
             const sentMessage = await wbot.sendMessage(
-              `${contact.number}@c.us`,
+              (contact.jid || `${contact.number}@c.us`),
               body2
             );
             verifyMessage(sentMessage, ticket, contact);
@@ -826,7 +826,7 @@ const isValidMsg = (msg: WbotMessage): boolean => {
   ) {
     return true;
   }
-  
+
   console.warn("Tipo de mensagem desconhecido:", msgType);
   return true;
 };
@@ -840,11 +840,11 @@ const getSafeContact = async (
     if (useRemoteJid) {
       return await wbot.getContactById(useRemoteJid);
     }
-    
+
     if (msg.fromMe) {
       return await wbot.getContactById(msg.to);
     }
-    
+
     return await msg.getContact();
   } catch (err) {
     logger.warn(`[FALLBACK] Usando contato alternativo devido a limitação da lib whatsapp-web.js: ${err.message || String(err)}`);
@@ -870,18 +870,18 @@ const handleMessage = async (
       incrementMessageCount(wbot.id);
       updateLastActivity(wbot.id);
     }
-    
+
 
     // if (msg.type === 'poll_creation' || (msg as any).pollName) {
     //   logger.info(`[MSG_IGNORADA] Mensagem de enquete ignorada (processada pelo SendPollService): ID=${msg.id?.id || 'unknown'}`);
     //   return;
     // }
-    
+
     if (!isValidMsg(msg)) {
       logger.info(`[MSG_IGNORADA] Mensagem ignorada por não ser válida: ID=${msg.id?.id || 'unknown'}`);
       return;
     }
-    
+
     logger.info(`[MSG_PROCESSANDO] Iniciando processamento da mensagem: ID=${msg.id?.id || 'unknown'}`);
   } catch (err) {
     logger.error(`[MSG_ERRO_LOG] Erro ao registrar logs iniciais: ${err}`);
@@ -898,7 +898,7 @@ const handleMessage = async (
     const chat = await msg.getChat();
     let groupContact;
     let baseContact: WbotContact;
-    
+
     if (chat.isGroup) {
       baseContact = msg.fromMe
         ? await getSafeContact(wbot, msg, msg.to)
@@ -910,11 +910,11 @@ const handleMessage = async (
     } else {
       baseContact = await getSafeContact(wbot, msg);
     }
-    
+
     const contact = await verifyContact(baseContact);
-    
+
     const unreadMessages = msg.fromMe ? 0 : chat.unreadCount;
-    
+
     const ticket = await FindOrCreateTicketService(
       contact,
       wbot.id!,
@@ -923,7 +923,7 @@ const handleMessage = async (
       undefined,
       groupContact
     );
-    
+
     const options = {
       method: "POST",
       url: Integrationdb?.value,
@@ -935,9 +935,9 @@ const handleMessage = async (
         ticket: ticket
       }
     };
-    
+
     try {
-      await request(options); 
+      await request(options);
     } catch (error) {
       console.error("Erro ao enviar dados para o n8n:", error);
     }
@@ -960,7 +960,7 @@ const handleMessage = async (
     }
   }
 
-  try {    
+  try {
     let msgContact: WbotContact;
     let groupContact: Contact | undefined;
     let userId;
@@ -1010,7 +1010,7 @@ const handleMessage = async (
         await groupContact.update({
           isGroup: true,
           name: groupName || groupContact.name,
-          number: fullJid, 
+          number: fullJid,
           profilePicUrl: profilePicUrl || groupContact.profilePicUrl
         });
 
@@ -1103,12 +1103,12 @@ const handleMessage = async (
           name: "",
           numbers: []
         };
-        
+
         const nameMatch = vCardContent.match(/FN[^:]*:(.*?)(?:\r?\n|$)/i);
         if (nameMatch && nameMatch[1]) {
           extractedData.name = nameMatch[1].trim();
         }
-        
+
         const telRegex = /TEL[^:]*:(.*?)(?:\r?\n|$)/gi;
         let telMatch;
         while ((telMatch = telRegex.exec(vCardContent)) !== null) {
@@ -1116,18 +1116,18 @@ const handleMessage = async (
             extractedData.numbers.push(telMatch[1].trim());
           }
         }
-        
+
         const waidRegex = /TEL;waid=(\d+)/gi;
         let waidMatch;
         let hasWaidNumbers = false;
-        
+
         while ((waidMatch = waidRegex.exec(vCardContent)) !== null) {
           if (waidMatch[1] && waidMatch[1].trim()) {
             extractedData.numbers.push("waid=" + waidMatch[1].trim());
             hasWaidNumbers = true;
           }
         }
-        
+
         if (!hasWaidNumbers) {
           const telRegex = /TEL[^:]*:(.*?)(?:\r?\n|$)/gi;
           let telMatch;
@@ -1136,7 +1136,7 @@ const handleMessage = async (
               extractedData.numbers.push(telMatch[1].trim());
             }
           }
-          
+
           if (extractedData.numbers.length === 0) {
             const array = vCardContent.split("\n");
             for (let index = 0; index < array.length; index++) {
@@ -1152,17 +1152,17 @@ const handleMessage = async (
             }
           }
         }
-        
+
         const contactsCreated = [];
         for (const phoneNumber of extractedData.numbers) {
           try {
             const phoneStr = String(phoneNumber);
-            
+
             const waidMatch = phoneStr.match(/waid=(\d+)/);
-            
+
             if (waidMatch && waidMatch[1]) {
               const cleanNumber = waidMatch[1];
-              
+
               if (cleanNumber) {
                 const cont = await CreateContactService({
                   name: extractedData.name || "Contato",
@@ -1177,7 +1177,7 @@ const handleMessage = async (
               }
             } else if (!hasWaidNumbers) {
               const cleanNumber = phoneStr.replace(/\D/g, "");
-              
+
               if (cleanNumber) {
                 const cont = await CreateContactService({
                   name: extractedData.name || "Contato",
@@ -1193,12 +1193,12 @@ const handleMessage = async (
           } catch (err) {
             if (err.message === "ERR_DUPLICATED_CONTACT") {
               const phoneStr = String(phoneNumber);
-              
+
               const waidMatch = phoneStr.match(/waid=(\d+)/);
-              
+
               if (waidMatch && waidMatch[1]) {
                 const cleanNumber = waidMatch[1];
-                
+
                 const cont = await GetContactService({
                   name: extractedData.name || "Contato",
                   number: cleanNumber,
@@ -1212,7 +1212,7 @@ const handleMessage = async (
                 });
               } else if (!hasWaidNumbers) {
                 const cleanNumber = phoneStr.replace(/\D/g, "");
-                
+
                 const cont = await GetContactService({
                   name: extractedData.name || "Contato",
                   number: cleanNumber,
@@ -1229,7 +1229,7 @@ const handleMessage = async (
             }
           }
         }
-        
+
         if (contactsCreated.length > 0) {
           msg.body = JSON.stringify({
             name: extractedData.name || "Contato",
@@ -1419,7 +1419,7 @@ const handleMessage = async (
     } catch (picErr) {
       logger.warn(`Não foi possível obter foto de perfil: ${String(picErr)}`);
     }
-    
+
     const contactData = {
       name: msgContact.name || msgContact.pushname || msgContact.id.user,
       number: msgContact.id.user,
@@ -1430,9 +1430,9 @@ const handleMessage = async (
   } catch (err) {
     Sentry.captureException(err);
     logger.error(`[MSG_ERRO] Erro ao processar mensagem do WhatsApp. ID=${msg?.id?.id || 'unknown'}, Erro: ${err}`);
-    
+
     logger.error(`[MSG_ERRO_DETALHES] Stack trace: ${err.stack || 'Sem stack trace'}`);
-    
+
     try {
       logger.error(`[MSG_ERRO_CONTEXTO] Contexto da mensagem com erro: ${JSON.stringify({
         id: msg?.id?.id || 'unknown',
@@ -1461,7 +1461,7 @@ const handleMsgAck = async (msg: WbotMessage, ack: MessageAck) => {
 
   try {
     logger.info(`[ACK_EVENTO] Recebido evento de ACK: ID=${msg.id.id}, ACK=${ack}, Timestamp=${timestamp}`);
-    
+
     logger.info(`[ACK_DETALHES] Detalhes da mensagem: ${JSON.stringify({
       id: msg.id,
       fromMe: msg.fromMe,
@@ -1469,7 +1469,7 @@ const handleMsgAck = async (msg: WbotMessage, ack: MessageAck) => {
       deviceType: msg.deviceType,
       timestamp: msg.timestamp
     })}`);
-    
+
     const messageToUpdate = await Message.findByPk(msg.id.id, {
       include: [
         "contact",
@@ -1493,18 +1493,18 @@ const handleMsgAck = async (msg: WbotMessage, ack: MessageAck) => {
 
     const currentAck = messageToUpdate.ack || 0;
     let ackToUpdate = ack || 0;
-    
+
     if (messageToUpdate.read === true && ackToUpdate < 3 && messageToUpdate.fromMe) {
       logger.info(`[ACK_DEBUG] Mensagem marcada como lida (read=true), mas ACK=${ackToUpdate}. Mantendo ACK original conforme documentação.`);
     }
-    
+
     if (ackToUpdate > currentAck) {
       logger.info(`[ACK_ATUALIZACAO] Atualizando ACK da mensagem ${msg.id.id}: ${currentAck} -> ${ackToUpdate}`);
-      
+
       const beforeUpdate = new Date().getTime();
       await messageToUpdate.update({ ack: ackToUpdate });
       const afterUpdate = new Date().getTime();
-      
+
       logger.info(`[ACK_PERFORMANCE] Tempo para atualizar ACK no banco: ${afterUpdate - beforeUpdate}ms`);
 
       const beforeEmit = new Date().getTime();
@@ -1513,16 +1513,16 @@ const handleMsgAck = async (msg: WbotMessage, ack: MessageAck) => {
         message: messageToUpdate
       });
       const afterEmit = new Date().getTime();
-      
+
       logger.info(`[ACK_SOCKET] Socket emitido para ticket ${messageToUpdate.ticketId}, tempo: ${afterEmit - beforeEmit}ms`);
     } else {
       logger.info(`[ACK_IGNORADO] ACK ignorado: valor atual (${currentAck}) >= novo valor (${ackToUpdate})`);
     }
-    
+
     if (ackToUpdate >= 2) {
       try {
         logger.info(`[ACK_BATCH_CHECK] Verificando outras mensagens do ticket ${messageToUpdate.ticketId} para sincronização`);
-        
+
         const messagesToUpdate = await Message.findAll({
           where: {
             ticketId: messageToUpdate.ticketId,
@@ -1531,19 +1531,19 @@ const handleMsgAck = async (msg: WbotMessage, ack: MessageAck) => {
           },
           order: [['createdAt', 'DESC']]
         });
-        
+
         if (messagesToUpdate.length > 0) {
           logger.info(`[ACK_BATCH_UPDATE] Encontradas ${messagesToUpdate.length} mensagens para atualização em lote`);
-          
+
           for (const msg of messagesToUpdate) {
             await msg.update({ ack: ackToUpdate >= 3 ? 3 : 2 });
-            
+
             io.to(msg.ticketId.toString()).emit("appMessage", {
               action: "update",
               message: msg
             });
           }
-          
+
           logger.info(`[ACK_BATCH_COMPLETE] Atualização em lote concluída`);
         }
       } catch (batchErr) {
@@ -1576,9 +1576,9 @@ const handleMsgEdit = async (
   const io = getIO();
 
   try {
-    
+
     if (oldBody && newBody && oldBody !== newBody) {
-      
+
       const existingHistory = await OldMessage.findOne({
         where: {
           messageId: msg.id.id,
@@ -1630,7 +1630,7 @@ const updatePendingMessages = async (whatsappId: number): Promise<void> => {
   try {
     const oneHourAgo = new Date();
     oneHourAgo.setHours(oneHourAgo.getHours() - 1);
-    
+
     const pendingMessages = await Message.findAll({
       where: {
         fromMe: true,
@@ -1644,13 +1644,13 @@ const updatePendingMessages = async (whatsappId: number): Promise<void> => {
       }],
       limit: 100
     });
-    
-    if (pendingMessages.length > 0) {      
+
+    if (pendingMessages.length > 0) {
       const io = getIO();
-      
+
       for (const message of pendingMessages) {
         await message.update({ ack: 3 });
-        
+
         io.to(message.ticketId.toString()).emit("appMessage", {
           action: "update",
           message
@@ -1685,15 +1685,15 @@ const wbotMessageListener = async (wbot: Session): Promise<void> => {
       verifyRevoked(msgBody || "");
     }
   });
-  
+
   if (wbot.id) {
     setInterval(() => {
       updatePendingMessages(wbot.id!);
-    }, 30 * 60 * 1000); 
-    
+    }, 30 * 60 * 1000);
+
     setTimeout(() => {
       updatePendingMessages(wbot.id!);
-    }, 5 * 60 * 1000); 
+    }, 5 * 60 * 1000);
   }
 };
 

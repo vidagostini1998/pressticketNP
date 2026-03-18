@@ -23,14 +23,14 @@ const SendWhatsAppContacts = async ({
 
   try {
     let sentMessage: WbotMessage | undefined;
-    const chatId = `${ticket.contact.number}@${ticket.isGroup ? "g" : "c"}.us`;
+      const chatId = ticket.contact.jid || `${ticket.contact.number}@${ticket.isGroup ? "g" : "c"}.us`;
 
     if (contacts.length === 1) {
       const contact = contacts[0];
-      
+
       const cleanNumber = contact.number.replace(/\D/g, "");
       const formattedNumber = cleanNumber.startsWith("55") ? `+${cleanNumber}` : `+55${cleanNumber}`;
-      
+
       const vcard = `BEGIN:VCARD
 VERSION:3.0
 FN:${contact.name}
@@ -45,11 +45,11 @@ END:VCARD`;
       } catch (e) {}
       sentMessage = await wbot.sendMessage(chatId, vcard);
     } else {
-      
+
       const vcards = contacts.map(contact => {
-        const cleanNumber = contact.number.replace(/\D/g, "");
+        const cleanNumber = (contact.jid ? contact.jid.replace(/[^0-9]/g, "") : contact.number.replace(/\D/g, ""));
         const formattedNumber = cleanNumber.startsWith("55") ? `+${cleanNumber}` : `+55${cleanNumber}`;
-        
+
         return `BEGIN:VCARD
 VERSION:3.0
 FN:${contact.name}
@@ -57,12 +57,12 @@ TEL;TYPE=CELL:${formattedNumber}
 TEL;waid=${cleanNumber}:${formattedNumber}
 END:VCARD`;
       });
-      
+
       for (let i = 0; i < contacts.length; i++) {
         const contact = contacts[i];
-        const cleanNumber = contact.number.replace(/\D/g, "");
+        const cleanNumber = (contact.jid ? contact.jid.replace(/[^0-9]/g, "") : contact.number.replace(/\D/g, ""));
         const formattedNumber = cleanNumber.startsWith("55") ? `+${cleanNumber}` : `+55${cleanNumber}`;
-        
+
         const individualVcard = `BEGIN:VCARD
 VERSION:3.0
 FN:${contact.name}
@@ -76,17 +76,17 @@ END:VCARD`;
           await new Promise(resolve => setTimeout(resolve, 300));
         } catch (e) {}
         sentMessage = await wbot.sendMessage(chatId, individualVcard);
-        
+
         if (i < contacts.length - 1) {
           await new Promise(resolve => setTimeout(resolve, 500));
         }
       }
     }
 
-    const lastMessageText = contacts.length === 1 
+    const lastMessageText = contacts.length === 1
       ? `📞 Contato compartilhado: ${contacts[0].name}`
       : `📞 ${contacts.length} contatos compartilhados`;
-      
+
     await ticket.update({ lastMessage: lastMessageText });
     await ticket.reload();
 

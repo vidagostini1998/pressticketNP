@@ -25,11 +25,11 @@ const SetTicketMessagesAsRead = async (ticket: Ticket): Promise<void> => {
   );
 
   await ticket.update({ unreadMessages: 0 });
-  
+
   if (unreadMessages.length > 0) {
-    
+
     const io = getIO();
-    
+
     unreadMessages.forEach(message => {
       io.to(ticket.id.toString()).emit("appMessage", {
         action: "update",
@@ -44,9 +44,8 @@ const SetTicketMessagesAsRead = async (ticket: Ticket): Promise<void> => {
 
   try {
     const wbot = await GetTicketWbot(ticket);
-    await wbot.sendSeen(
-      `${ticket.contact.number}@${ticket.isGroup ? "g" : "c"}.us`
-    );
+      const jid = ticket.contact.jid || `${ticket.contact.number}@${ticket.isGroup ? "g" : "c"}.us`;
+      await wbot.sendSeen(jid);
   } catch (err) {
     logger.warn(
       `Could not mark messages as read. Maybe whatsapp session disconnected? Err: ${err}`

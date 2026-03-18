@@ -31,7 +31,7 @@ class ContactCacheHelper {
     }
 
     const contact = await Contact.findByPk(contactId);
-    
+
     if (contact) {
       CacheService.set(cacheKey, contact, ttl);
       logger.debug(`Contact ${contactId} cached`);
@@ -56,7 +56,7 @@ class ContactCacheHelper {
     }
 
     const contact = await Contact.findOne({ where: { number } });
-    
+
     if (contact) {
       CacheService.set(cacheKey, contact, ttl);
       CacheService.set(this.getCacheKey(contact.id), contact, ttl);
@@ -79,7 +79,7 @@ class ContactCacheHelper {
   }
 
   invalidateAll(): void {
-    const keys = CacheService.keys().filter(key => 
+    const keys = CacheService.keys().filter(key =>
       key.startsWith(this.CACHE_PREFIX)
     );
     CacheService.del(keys);
@@ -88,20 +88,26 @@ class ContactCacheHelper {
 
   async warmupCache(contactIds: number[]): Promise<void> {
     logger.info(`Warming up cache for ${contactIds.length} contacts`);
-    
+
     const contacts = await Contact.findAll({
       where: { id: contactIds }
     });
 
     contacts.forEach(contact => {
       CacheService.set(this.getCacheKey(contact.id), contact, this.DEFAULT_TTL);
-      if (contact.number) {
-        CacheService.set(
-          this.getCacheKey(`number:${contact.number}`),
-          contact,
-          this.DEFAULT_TTL
-        );
-      }
+        if (contact.jid) {
+          CacheService.set(
+            this.getCacheKey(`jid:${contact.jid}`),
+            contact,
+            this.DEFAULT_TTL
+          );
+        } else if (contact.number) {
+          CacheService.set(
+            this.getCacheKey(`number:${contact.number}`),
+            contact,
+            this.DEFAULT_TTL
+          );
+        }
     });
 
     logger.info(`Cache warmed up with ${contacts.length} contacts`);
@@ -110,7 +116,7 @@ class ContactCacheHelper {
   getCacheStats() {
     const allKeys = CacheService.keys();
     const contactKeys = allKeys.filter(key => key.startsWith(this.CACHE_PREFIX));
-    
+
     return {
       totalCached: contactKeys.length,
       cacheStats: CacheService.getStats()
