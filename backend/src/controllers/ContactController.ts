@@ -3,6 +3,13 @@ import * as Yup from "yup";
 import { getIO } from "../libs/socket";
 
 import CreateContactService from "../services/ContactServices/CreateContactService";
+// Handlers globais para capturar erros não tratados
+process.on('uncaughtException', (err) => {
+  console.error('UNCAUGHT EXCEPTION:', err);
+});
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('UNHANDLED REJECTION at:', promise, 'reason:', reason);
+});
 import DeleteAllContactService from "../services/ContactServices/DeleteAllContactService";
 import DeleteContactService from "../services/ContactServices/DeleteContactService";
 import ExportContactsService from "../services/ContactServices/ExportContactsService";
@@ -429,13 +436,6 @@ export const update = async (
 
   await createActivityLog({
     userId: typeof logUserId === 'string' ? parseInt(logUserId) : logUserId,
-      // Adicionar log global para capturar qualquer erro não tratado
-      process.on('uncaughtException', (err) => {
-        console.error('UNCAUGHT EXCEPTION:', err);
-      });
-      process.on('unhandledRejection', (reason, promise) => {
-        console.error('UNHANDLED REJECTION at:', promise, 'reason:', reason);
-      });
     action: ActivityActions.UPDATE,
     description: `Contato ${contact.name} (${contact.number}) atualizado`,
     entityType: EntityTypes.CONTACT,
