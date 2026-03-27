@@ -49,7 +49,7 @@
     "mustache": "^4.2.0",
     "mysql2": "^2.2.5",
     "node-cache": "^5.1.2",
-    "nodemailer": "^6.9.16",
+    "nodemailer": "^8.0.4",
     "notificamehubsdk": "^0.0.21",
     "openai": "^3.2.1",
     "pg": "^8.4.1",
